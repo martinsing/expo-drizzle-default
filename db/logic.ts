@@ -19,6 +19,22 @@ export async function checkDatabaseState() {
   }
 }
 
+// Initializes the database and creates the table if it doesn't exist
+export async function initializeDatabase() {
+  try {
+    await db.run(`
+      CREATE TABLE IF NOT EXISTS users_Table (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE
+      )
+    `);
+    console.log("Database initialized successfully.");
+  } catch (error) {
+    console.error("Error initializing database:", error);
+  }
+}
+
 // Reads all Users in userList
 export async function getAllUsers() {
   try {

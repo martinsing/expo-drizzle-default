@@ -4,7 +4,10 @@ expo-drizzle-default
 
 As I was trying to learn expo when I decided I needed an ORM.
 Drizzle seemed robust though the documentation needed more information.
-I will fork what they have made from drizzle's [get started](https://orm.drizzle.team/docs/get-started/expo-new). **The only exception is that age was removed**
+I will fork what they have made from drizzle's [get started](https://orm.drizzle.team/docs/get-started/expo-new).
+
+> [!IMPORTANT]
+> The only difference between Drizzle's code and mine is that I removed the `age` element
 
 This repo will show you how to setup expo with drizzle. The instructions will then create a simple app to demonstrate drizzle. I will try to use as few dependacies and libraries as possible. The repo will create an experience that can create, read, update, and delete (CRUD) users as needed.
 
@@ -28,30 +31,14 @@ Name your app, I've calling the project _expo-drizzle-default_
 
 ## Step 2 - Install required packages etc
 
-`npx expo install expo-sqlite`
+1. `npx expo install expo-sqlite`
+2. `npm i drizzle-orm`
+3. `npm i -D drizzle-kit`
+4. `npm i babel-plugin-inline-import`
+5. `npx expo customize metro.config.js`
+6. `npx expo customize babel.config.js`
 
-`npm i drizzle-orm`
-
-`npm i -D drizzle-kit`
-
-`npm i babel-plugin-inline-import`
-
-`npx expo customize metro.config.js`
-
-`npx expo customize babel.config.js`
-
-<!-- # Step 3 - Connect Drizzle ORM to the database
-
-In the Root Directory, create `App.tsx` and initilize the connection.
-
-```
-import * as SQLite from 'expo-sqlite';
-import { drizzle } from 'drizzle-orm/expo-sqlite';
-const expo = SQLite.openDatabaseSync('db.db');
-const db = drizzle(expo);
-``` -->
-
-## Step - Create a Schema
+## Step 3 - Create a Schema
 
 Create a schema.ts file in the db directory and declare your table. It's the same as Drizzle's get started minus the age element.
 
@@ -66,9 +53,9 @@ email: text().notNull().unique(),
 });
 ```
 
-## Step - Setup config files
+## Step 4 - Setup config files
 
-These should exist in your Root Folder
+These exist in your Root Folder
 
 ### metro config
 
@@ -76,9 +63,9 @@ These should exist in your Root Folder
 
 ```
 const { getDefaultConfig } = require('expo/metro-config');
-/\*_ @type {import('expo/metro-config').MetroConfig} _/
-const config = getDefaultConfig(\_\_dirname);
-config.resolver.sourceExts.push('sql'); // <- add this line
+/** @type {import('expo/metro-config').MetroConfig} */
+const config = getDefaultConfig(__dirname);
+config.resolver.sourceExts.push('sql');
 module.exports = config;
 ```
 
@@ -110,7 +97,7 @@ export default defineConfig({
 });
 ```
 
-## Step - Generate Migrations
+## Step 5 - Generate Migrations
 
 `npx drizzle-kit generate`
 
@@ -120,7 +107,7 @@ This will make:
 2.  ./drizzle/migration.js
 3.  ./drizzle/SQLmigrationfile.sql
 
-## Step - Update index.tsx
+## Step 6 - Update index.tsx
 
 The is the original code (minus the age) from Drizzle's [get started](https://orm.drizzle.team/docs/get-started/expo-new).
 
@@ -193,7 +180,7 @@ export default function App() {
 }
 ```
 
-## Step - expo start
+## Step 7 - expo start
 
 `npx expo start` If successful, you should see John's email. Hurray!
 
@@ -211,18 +198,21 @@ We're going to:
 4. make `./app/addUser.tsx`
 5. make `./app/updateUser.tsx`
 
-If you want to practice, then you can combined addUser.tsx and updateUser.tsx as their views are pretty much the same. Follow along in Expo Go and don't forget to refresh `r` to see how this app comes together.
+Follow along in Expo Go and don't forget to refresh `r` to see how this app comes together.
 
-## Update index.tsx
+## Step 8 - Update index.tsx
 
-Not going to mess too much with index.tsx and App.tsx and play with the config files. We'll make a simple index.tsx have a button that will point us to the list of users.
+Not going to mess too much with index.tsx and App.tsx and play with the config files. Let's keep a simple `index.tsx` with a button that will point us to `userList`. I've also added a initializeDatabase() that we'll define in the next step.
 
 `./app/index.tsx`
 
 ```
 import { router } from "expo-router";
-import { Text, View, Button } from "react-native";
+import { Button, View } from "react-native";
+import { initializeDatabase } from "@/db/logic";
 
+// Initialize the database, if it doesn't exist
+initializeDatabase();
 export default function Index() {
   return (
     <View
@@ -238,7 +228,7 @@ export default function Index() {
 }
 ```
 
-## Step - make logic.ts
+## Step 9 - make logic.ts
 
 This file contains the logic for interacting with the SQLite database. It provides functions for fetching, updating, and deleting user records from the database. Create `./db/logic.ts` with the following:
 
@@ -261,6 +251,22 @@ export async function checkDatabaseState() {
     console.log(`Current users in the database: ${count}`);
   } catch (error) {
     console.error("Error checking database state:", error);
+  }
+}
+
+// Initializes the database and creates the table if it doesn't exist
+export async function initializeDatabase() {
+  try {
+    await db.run(`
+      CREATE TABLE IF NOT EXISTS users_Table (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE
+      )
+    `);
+    console.log("Database initialized successfully.");
+  } catch (error) {
+    console.error("Error initializing database:", error);
   }
 }
 
@@ -311,10 +317,9 @@ export async function deleteUser(id: string) {
     throw error;
   }
 }
-
 ```
 
-## Step - Create userList.tsx:
+## Step 10 - Create userList.tsx:
 
 This screen **READS** the list of all users currently in the database.
 Create `./app/userList.tsx` with the following:
@@ -408,10 +413,13 @@ const styles = StyleSheet.create({
 });
 ```
 
-## Step - Create addUser.tsx:
+## Step 11 - Create addUser.tsx:
 
 This screen allows us to **CREATE** new users to the database
 Create `./app/addUser.tsx` with the following:
+
+> [!TIP]
+> There's some logic here that can be added to logic.ts, try to make that happen.
 
 ```
 // addUser.tsx
@@ -486,9 +494,13 @@ const styles = StyleSheet.create({
 });
 ```
 
-## Step - make updateUser.tsx
+## Step 12 - make updateUser.tsx
 
-This screen **READS** the userTable and allows us to **UPDATE** & **DELETE** new users in the database. Create `./app/updateUser.tsx` with the following:
+This screen **READS** the userTable and allows us to **UPDATE** & **DELETE** new users in the database.
+
+> [!TIP]
+> You can try and reuse the views from `updateUser.tsx` and `addUser.tsx`
+> Create `./app/updateUser.tsx` with the following:
 
 ```
 // updateUser.tsx
@@ -589,4 +601,4 @@ const styles = StyleSheet.create({
 });
 ```
 
-**All done!** Play around with it. I hope this has helped you in learning how to start an Expo project and get started using drizzle.
+**All done!** Play around with it. I hope it works and that this has helped you in learning how to start an Expo project with drizzle. If there are any issues please let me know and I will update it.
